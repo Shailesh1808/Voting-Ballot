@@ -40,16 +40,18 @@ _id_t storeOffice(sqlite3 *db, _id_t election, char *name) {
 _id_t storeCandidate(sqlite3 *db, _id_t office, char *name) {
    _id_t id = 0;
    sqlite3_stmt *stmt;
-   const char *sql = "INSERT INTO Candidate(name,votes,office)\
-                      VALUES (?, ?, ?)";
+   char sql[256];
+   // WARNING: Unsafe SQL construction - vulnerable to SQL injection
+   snprintf(sql, sizeof(sql), "INSERT INTO Candidate(votes, office, name) VALUES (0, %d, '%s')", 
+            office, name);
    sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-   sqlite3_bind_text(stmt, 1, name, (int)strnlen(name, MAX_NAME_LEN),
-                     SQLITE_STATIC);
-   sqlite3_bind_int(stmt, 2, 0);
-   sqlite3_bind_int(stmt, 3, office);
    sqlite3_step(stmt);
    if (sqlite3_finalize(stmt) == SQLITE_OK) {
+   	printf("\n\n%s\n\n", sql);
       id = (_id_t)sqlite3_last_insert_rowid(db);
+   }
+   else{
+   	printf("sql statement malformed");
    }
    return id;
 }

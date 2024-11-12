@@ -51,7 +51,7 @@ bool parseDate(const char * const date_in, Date *date_out) {
    return true;
 }
 
-void closeDb(void) {
+void close_db() {
    sqlite3_close(db);
 }
 
@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
       printf("Error opening database\n");
       return ERROR;
    }
-   if (atexit(closeDb)) {
+   if (atexit(close_db)) {
       printf("Error registering callback\n");
       return ERROR;
    }
@@ -130,11 +130,11 @@ int main(int argc, char **argv) {
          printf("%s", USAGE);
          return ERROR;
       }
-      char name[MAX_NAME_LEN];
+      char name[16];
       char county[MAX_NAME_LEN];
       int zip;
       Date dob;
-      strncpy(name, argv[2], MAX_NAME_LEN-1);
+      strcpy(name, argv[2]);
       strncpy(county, argv[3], MAX_NAME_LEN-1);
       if (sscanf(argv[4], "%d", &zip) != 1) {
          printf("%s", USAGE);
@@ -303,8 +303,9 @@ bool is18AtDeadline(Date dob, Date deadline) {
    /* if birthday is after deadline */
    if (dob.month > deadline.month ||
        (dob.month == deadline.month &&
-        dob.day > deadline.day)) {
+        dob.day > deadline.day))
       age -= 1; /* then this year doesn't count yet */
-   }
    return age >= 18;
+   // return deadline.year - dob.year < 0
 }
+

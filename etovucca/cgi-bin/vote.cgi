@@ -3,6 +3,7 @@
 import cgi
 import subprocess
 import json
+import xml.etree.ElementTree as ET
 
 PATH_TO_MACHINE = "./etovucca"
 PATH_TO_SQLITE = "./sqlite3"
@@ -16,6 +17,11 @@ def convert_date_to_id(date):
     election_id = int(subprocess.check_output([PATH_TO_SQLITE, PATH_TO_DB, sql]))
     return election_id
 
+def process_xml(xml_data):
+    # Vulnerable XML parsing
+    tree = ET.fromstring(xml_data)
+    # Example processing: print the root tag
+    print(f"Root tag: {tree.tag}")
 
 print("Content-Type: text/html")
 print()
@@ -28,21 +34,27 @@ try:
         [PATH_TO_MACHINE, "get-elections"]).decode('utf-8')
     elections = json.loads(json_elections)
     if len(form) != 0:
-        ids = form.getvalue('election').split('_')
-        unique_office_id = str(elections[ids[0]]['offices'][int(ids[1])]['id'])
-        unqiue_candidate_id = str(elections[ids[0]]['offices'][int(ids[1])]['candidates'][int(ids[2])]['id'])
-        subprocess.check_output(
-            [PATH_TO_MACHINE, 'vote', form.getvalue('voterId'), str(convert_date_to_id(ids[0])), unique_office_id, unqiue_candidate_id])
-        print('<b>Sucessfully cast ballot.</b>')
-        print('<ul>')
-        print('<li>Election Date: {}</li>'.format(ids[0]))
-        print(
-            '<li>Office: {}</li>'.format(elections[ids[0]]['offices'][int(ids[1])]['name']))
-        print('<li>Candidate: {}</li>'.format(
-            elections[ids[0]]['offices'][int(ids[1])]['candidates'][int(ids[2])]['name']))
-        print('</ul>')
+        if 'xmlfile' in form:
+            fileitem = form['xmlfile']
+            if fileitem.file:
+                xml_data = fileitem.file.read().decode('utf-8')
+                process_xml(xml_data)
+        else:
+            ids = form.getvalue('election').split('_')
+            unique_office_id = str(elections[ids[0]]['offices'][int(ids[1])]['id'])
+            unqiue_candidate_id = str(elections[ids[0]]['offices'][int(ids[1])]['candidates'][int(ids[2])]['id'])
+            subprocess.check_output(
+                [PATH_TO_MACHINE, 'vote', form.getvalue('voterId'), str(convert_date_to_id(ids[0])), unique_office_id, unqiue_candidate_id])
+            print('<b>Successfully cast ballot.</b>')
+            print('<ul>')
+            print('<li>Election Date: {}</li>'.format(ids[0]))
+            print(
+                '<li>Office: {}</li>'.format(elections[ids[0]]['offices'][int(ids[1])]['name']))
+            print('<li>Candidate: {}</li>'.format(
+                elections[ids[0]]['offices'][int(ids[1])]['candidates'][int(ids[2])]['name']))
+            print('</ul>')
     else:
-        print('<form method="post">')
+        print('<form method="post" enctype="multipart/form-data">')
         print('<label for="voterId">Voter ID</label><br>')
         print('<input type="number" id="voterId" name="voterId"><br>')
         print('<label for="election">Ballot</label><br>')
@@ -58,7 +70,9 @@ try:
                         print(
                             '<option value="{}_{}_{}">{}</option>'.format(date, oid, cid, candidate['name']))
                     print('</optgroup>')
-        print('</select>')
+        print('</select><br>')
+        print('<label for="xmlfile">Upload XML File:</label><br>')
+        print('<input type="file" id="xmlfile" name="xmlfile"><br>')
         print('<input type="submit" value="Vote">')
         print('</form>')
 except subprocess.CalledProcessError as e:
@@ -72,3 +86,4 @@ except Exception as e:
     print(e)
     print('</code>')
 print('<br><a href="./home.cgi">Return to Homepage</a>')
+
