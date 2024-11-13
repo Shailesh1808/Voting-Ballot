@@ -4,7 +4,7 @@ import cgi
 from http.cookies import SimpleCookie
 import hashlib
 
-PATH_TO_PASSWD = "./machine_passwd"
+PATH_TO_PASSWD = "./machine_password"
 redirectURL = "./admin.cgi"
 
 def render_login(failure=False, logout=False):
